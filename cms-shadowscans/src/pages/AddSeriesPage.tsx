@@ -1,6 +1,8 @@
 import React, { useRef, useState } from "react";
 import { seriesGenres } from "../constants/constants";
 import { BiUpload } from "react-icons/bi";
+import { GiGalley } from "react-icons/gi";
+import { CiImageOn } from "react-icons/ci";
 
 export default function AddSeriesPage() {
     const [uploadType, setUploadType] = useState<"device" | "link">("device");
@@ -121,31 +123,74 @@ export default function AddSeriesPage() {
                     </section>
                     <section className="w-[24rem] bg-[#2f2e2e] p-4 space-y-4">
                         <h1 className="text-left">Cover Image</h1>
-                        <div
-                            className="max-w-[96%] border border-dashed border-[#dadada5a] h-54 rounded-md flex items-center justify-center flex-col mx-auto hover:opacity-80 cursor-pointer"
-                            onClick={() => imageInputRef.current?.click()}
-                        >
-                            <BiUpload className="text-3xl text-gray-400" />
-                            <span className="text-gray-400">
-                                Click to upload
-                            </span>
-                            <input
-                                type="file"
-                                className="hidden"
-                                ref={imageInputRef}
-                                onChange={handleImageInput}
-                            />
+                        <div className="flex justify-between border border-gray-700 rounded-md p-[3px] ">
+                            <div
+                                className={`flex justify-center flex-1 text-sm py-1 rounded-md cursor-pointer ${
+                                    uploadType === "device" && "bg-red-500"
+                                }`}
+                                onClick={() => setUploadType("device")}
+                            >
+                                Upload File
+                            </div>
+                            <div
+                                className={`flex justify-center flex-1 text-sm py-1 rounded-md cursor-pointer ${
+                                    uploadType === "link" && "bg-red-500"
+                                }`}
+                                onClick={() => setUploadType("link")}
+                            >
+                                Image Link
+                            </div>
                         </div>
+                        {uploadType === "device" ? (
+                            <>
+                                <div
+                                    className="max-w-[96%] border border-dashed border-[#dadada5a] h-44 rounded-md flex items-center justify-center flex-col mx-auto hover:opacity-80 cursor-pointer"
+                                    onClick={() =>
+                                        imageInputRef.current?.click()
+                                    }
+                                >
+                                    <BiUpload className="text-3xl text-gray-500" />
+                                    <span className="text-gray-500">
+                                        Click to upload
+                                    </span>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        ref={imageInputRef}
+                                        onChange={handleImageInput}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex flex-col w-full gap-2">
+                                <span>Image URL</span>
+                                <input
+                                    placeholder="https://example.com"
+                                    className="py-2 rounded-md border border-gray-700 px-4 hover:outline-none"
+                                    onChange={(e) =>
+                                        setCoverImage(e.target.value)
+                                    }
+                                />
+                                <span className="text-xs text-gray-500">
+                                    Enter a direct link to an image (JPG, PNG,
+                                    GIF, WebP)
+                                </span>
+                            </div>
+                        )}
                         <div className="w-full space-y-4">
                             <h1>Cover Preview</h1>
-                            <div className="w-[90%] h-auto bg-[#272626a8] mx-auto overflow-hidden">
-                                {coverImage && (
-                                    <img
-                                        src={coverImage}
-                                        className="object-cover"
-                                    />
-                                )}
-                            </div>
+                            {coverImage && (
+                                <img
+                                    src={coverImage}
+                                    className="object-cover"
+                                />
+                            )}
+                            {!coverImage && (
+                                <div className="w-[95%] h-[30rem] bg-[#272626a8] mx-auto overflow-hidden flex items-center justify-center flex-col text-gray-500">
+                                    <CiImageOn className="text-5xl" />
+                                    <span>No Image uploaded</span>
+                                </div>
+                            )}
                         </div>
                     </section>
                 </div>
