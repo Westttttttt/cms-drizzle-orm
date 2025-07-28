@@ -9,10 +9,10 @@ import {
 
 const router = express.Router();
 
-router.get("/", getAllSeries);
-router.post("/add", addSeries);
+router.get("/get-all-series", getAllSeries);
+router.post("/add-series", addSeries);
 router.get("/:slug", getSeriesBySlug);
 router.delete("/:id", deleteSeries);
-router.put("/:id", updateSeries)
+router.put("/:id", updateSeries);
 
 export default router;

@@ -4,11 +4,14 @@ import "dotenv/config";
 import seriesRoutes from "./routes/series.route";
 import chapterRoutes from "./routes/chapter.route";
 import siteConfigRoutes from "./routes/sideConfig.route";
+import cors from "cors";
+
 
 dotenv.config();
 const PORT = process.env.PORT || 8000;
 const app = express();
 app.use(express.json({ limit: "5mb" }));
+app.use(cors());
 
 //apis
 app.use("/api/series", seriesRoutes);
