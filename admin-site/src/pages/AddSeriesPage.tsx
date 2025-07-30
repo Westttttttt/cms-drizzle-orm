@@ -1,37 +1,105 @@
 import React, { useRef, useState } from "react";
 import { seriesGenres } from "../constants/constants";
 import { BiUpload } from "react-icons/bi";
-import { GiGalley } from "react-icons/gi";
 import { CiImageOn } from "react-icons/ci";
+import { convertToBase64 } from "../lib/handle-image-input";
 
 export default function AddSeriesPage() {
     const [uploadType, setUploadType] = useState<"device" | "link">("device");
     const imageInputRef = useRef<HTMLInputElement | null>(null);
     const [coverImage, setCoverImage] = useState<string | null>(null);
+    const formRef = useRef<HTMLFormElement | null>(null);
+    const [loading, setIsLoading] = useState(false);
 
-    function handleImageInput(e: React.ChangeEvent<HTMLInputElement>) {
+    async function handleImageInput(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setCoverImage(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
+            try {
+                const base64 = await convertToBase64(file);
+                setCoverImage(base64 as string);
+            } catch (error) {
+                console.log(error);
+            }
         }
     }
+
+    const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault(); // prevent default form reset/refresh
+        setIsLoading(true);
+
+        const formData = new FormData(e.currentTarget);
+
+        const title = formData.get("series-title");
+        const description = formData.get("description");
+        const alternativeTitles =
+            (formData.get("alternative-titles") as string).split(",") || [];
+        const author = formData.get("author");
+        const status = formData.get("status");
+        const genres = formData.getAll("genre");
+        const isFeatured = formData.get("is-featured") === "on";
+
+        try {
+            const res = await fetch(
+                "http://localhost:9000/api/series/add-series",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        title,
+                        description,
+                        alternativeTitles,
+                        author,
+                        genres,
+                        status,
+                        coverImageUrl: coverImage,
+                        deleteImageUrl: " ",
+                        isFeatured,
+                    }),
+                }
+            );
+
+            const data: { success: boolean; message: string } =
+                await res.json();
+
+            if (data.success) {
+                alert(data.message);
+                formRef.current?.reset();
+                setCoverImage(null); // clear cover image preview
+            } else {
+                alert("Failed: " + data.message);
+            }
+        } catch (error) {
+            console.error("Submit error:", error);
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "Something went wrong when adding series"
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="w-full min-h-screen overflow-hidden">
             <h1 className="font-bold text-2xl pl-4">Add New Series</h1>
-            <form className=" p-4 flex w-full gap-6 flex-col">
-                <div className="flex w-full gap-6">
+            <form
+                className=" p-4 flex w-full gap-6 flex-col"
+                onSubmit={handleFormSubmit}
+                ref={formRef}
+            >
+                <div className="flex w-full gap-6 max-lg:flex-col">
                     <section className="bg-[#2f2e2e] flex-1 p-6 space-y-6 rounded-md">
                         <div className="flex flex-col gap-2">
                             <label htmlFor="" className="text-sm">
                                 Series Title *
                             </label>
                             <input
+                                name="series-title"
                                 type="text"
+                                required
                                 placeholder="Enter series title"
                                 className="border border-gray-700 py-2 px-4 focus:outline-none text-sm"
                             />
@@ -41,8 +109,9 @@ export default function AddSeriesPage() {
                                 Alternative Titles
                             </label>
                             <input
+                                name="alternative-titles"
                                 type="text"
-                                placeholder="Enter series title"
+                                placeholder="Enter alternative titles"
                                 className="border border-gray-700 py-2 px-4 focus:outline-none text-sm"
                             />
                         </div>
@@ -51,18 +120,20 @@ export default function AddSeriesPage() {
                                 Description
                             </label>
                             <textarea
-                                placeholder="Enter series title"
+                                name="description"
+                                placeholder="Enter description"
                                 className="border border-gray-700 py-2 px-4 focus:outline-none text-sm resize-none h-36"
                             />
                         </div>
                         <div className="flex justify-between gap-4 items-center">
                             <div className="flex flex-col gap-2 flex-1">
                                 <label htmlFor="" className="text-sm">
-                                    Alternative Titles
+                                    Author
                                 </label>
                                 <input
+                                    name="author"
                                     type="text"
-                                    placeholder="Enter series title"
+                                    placeholder="Enter author name"
                                     className="border border-gray-700 py-2 px-4 focus:outline-none text-sm"
                                 />
                             </div>
@@ -85,19 +156,17 @@ export default function AddSeriesPage() {
                             <label htmlFor="" className="text-sm">
                                 Genres
                             </label>
-                            <div
-                                flex-wrap
-                                gap-2
-                                p-2
-                                flex-colv
-                                className="flex flex-wrap gap-2"
-                            >
+                            <div className="flex flex-wrap gap-2">
                                 {seriesGenres.map((genre) => (
-                                    <div className="border border-gray-700 p-1 flex items-center gap-2">
+                                    <div
+                                        className="border border-gray-700 p-1 flex items-center gap-2"
+                                        key={genre}
+                                    >
                                         <input
                                             type="checkbox"
                                             name="genre"
                                             id={genre}
+                                            value={genre}
                                         />
                                         <label
                                             className="text-xs"
@@ -112,21 +181,22 @@ export default function AddSeriesPage() {
                         <div className="flex items-center gap-3">
                             <input
                                 type="checkbox"
-                                defaultChecked
                                 className="toggle toggle-xs"
                                 id="isFeatured"
+                                name="is-featured"
                             />
                             <label htmlFor="isFeatured" className="text-xs">
                                 Feature on Poster?
                             </label>
                         </div>
                     </section>
-                    <section className="w-[24rem] bg-[#2f2e2e] p-4 space-y-4">
+                    {/* right section */}
+                    <section className="w-[24rem] bg-[#2f2e2e] p-4 space-y-4 max-lg:w-full">
                         <h1 className="text-left">Cover Image</h1>
                         <div className="flex justify-between border border-gray-700 rounded-md p-[3px] ">
                             <div
                                 className={`flex justify-center flex-1 text-sm py-1 rounded-md cursor-pointer ${
-                                    uploadType === "device" && "bg-red-500"
+                                    uploadType === "device" && "bg-blue-500"
                                 }`}
                                 onClick={() => setUploadType("device")}
                             >
@@ -134,7 +204,7 @@ export default function AddSeriesPage() {
                             </div>
                             <div
                                 className={`flex justify-center flex-1 text-sm py-1 rounded-md cursor-pointer ${
-                                    uploadType === "link" && "bg-red-500"
+                                    uploadType === "link" && "bg-blue-500"
                                 }`}
                                 onClick={() => setUploadType("link")}
                             >
@@ -194,8 +264,11 @@ export default function AddSeriesPage() {
                         </div>
                     </section>
                 </div>
-                <button className="bg-red-600 py-2 flex items-center justify-center cursor-pointer text-black transition-all hover:opacity-85">
-                    Add Series
+                <button
+                    className="bg-blue-600 py-2 rounded-md flex items-center justify-center cursor-pointer transition-all hover:opacity-85"
+                    type="submit"
+                >
+                    {loading ? "Uploading" : "Add Series"}
                 </button>
             </form>
         </div>

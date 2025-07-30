@@ -14,6 +14,7 @@ export type AddSeriesBody = {
     genres?: string[];
     status?: StatusEnum;
     isVisible?: boolean;
+    isFeatured?: boolean;
     author?: string;
 };
 

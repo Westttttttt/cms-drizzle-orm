@@ -32,6 +32,7 @@ export const addSeries = async (
             status,
             coverImageUrl,
             deleteImageUrl,
+            isFeatured,
         } = req.body;
 
         if (!title) {
@@ -60,6 +61,20 @@ export const addSeries = async (
             .replace(/\s+/g, "-")
             .replace(/[^a-z0-9\-]/g, "");
 
+        const isSlugAlreadyExists = (
+            await db
+                .select()
+                .from(seriesTable)
+                .where(eq(seriesTable.slug, slug))
+        )[0];
+
+        if (isSlugAlreadyExists) {
+            return res.status(StatusCode.BAD_REQUEST).json({
+                success: false,
+                message: "Series with this title already exists",
+            });
+        }
+
         const statusString =
             status === undefined
                 ? undefined
@@ -83,6 +98,7 @@ export const addSeries = async (
             author,
             genres,
             isVisible,
+            isFeatured,
             status: statusString,
         };
 
