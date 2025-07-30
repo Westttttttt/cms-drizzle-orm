@@ -3,6 +3,7 @@ import Sidebar from "./components/Sidebar";
 import AddSeriesPage from "./pages/AddSeriesPage";
 import HomePage from "./pages/HomePage";
 import ManageSeries from "./pages/ManageSeries";
+import { Toaster } from "react-hot-toast";
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                     <Route path="/manage_series" element={<ManageSeries />} />
                 </Routes>
             </div>
+            <Toaster />
         </div>
     );
 }

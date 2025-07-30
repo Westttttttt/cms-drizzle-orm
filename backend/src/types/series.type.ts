@@ -10,12 +10,12 @@ export type AddSeriesBody = {
     alternativeTitles?: string[];
     description?: string;
     coverImageUrl: string;
-    deleteImageUrl: string;
     genres?: string[];
     status?: StatusEnum;
     isVisible?: boolean;
     isFeatured?: boolean;
     author?: string;
+    imageSourceType: "upload" | "link";
 };
 
 export type UpdateSeriesBody = {
@@ -32,4 +32,12 @@ export type UpdateSeriesBody = {
     author?: string;
     availableChapters?: number[];
     updatedAt?: Date;
+};
+
+export type ImageBBResponseType = {
+    success: boolean;
+    data: {
+        display_url: string;
+        delete_url: string;
+    };
 };

@@ -3,20 +3,24 @@ import { seriesGenres } from "../constants/constants";
 import { BiUpload } from "react-icons/bi";
 import { CiImageOn } from "react-icons/ci";
 import { convertToBase64 } from "../lib/handle-image-input";
+import toast from "react-hot-toast";
 
 export default function AddSeriesPage() {
-    const [uploadType, setUploadType] = useState<"device" | "link">("device");
+    const [imageSourceType, setImageSourceType] = useState<"upload" | "link">(
+        "upload"
+    );
     const imageInputRef = useRef<HTMLInputElement | null>(null);
     const [coverImage, setCoverImage] = useState<string | null>(null);
     const formRef = useRef<HTMLFormElement | null>(null);
-    const [loading, setIsLoading] = useState(false);
 
     async function handleImageInput(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (file) {
             try {
-                const base64 = await convertToBase64(file);
-                setCoverImage(base64 as string);
+                const base64 = (await convertToBase64(file)) as string;
+                if (base64) {
+                    setCoverImage(base64);
+                }
             } catch (error) {
                 console.log(error);
             }
@@ -25,7 +29,6 @@ export default function AddSeriesPage() {
 
     const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault(); // prevent default form reset/refresh
-        setIsLoading(true);
 
         const formData = new FormData(e.currentTarget);
 
@@ -37,6 +40,15 @@ export default function AddSeriesPage() {
         const status = formData.get("status");
         const genres = formData.getAll("genre");
         const isFeatured = formData.get("is-featured") === "on";
+
+        if (!coverImage) {
+            toast.error("Cover Image is missing", {
+                className: "text-xs ",
+            });
+            return;
+        }
+
+        const loadingToast = toast.loading("Uploading...");
 
         try {
             const res = await fetch(
@@ -56,29 +68,31 @@ export default function AddSeriesPage() {
                         coverImageUrl: coverImage,
                         deleteImageUrl: " ",
                         isFeatured,
+                        imageSourceType,
                     }),
                 }
             );
 
+            toast.dismiss(loadingToast);
             const data: { success: boolean; message: string } =
                 await res.json();
 
             if (data.success) {
-                alert(data.message);
+                toast.success(data.message);
                 formRef.current?.reset();
                 setCoverImage(null); // clear cover image preview
             } else {
-                alert("Failed: " + data.message);
+                toast.error(data.message);
             }
         } catch (error) {
             console.error("Submit error:", error);
-            alert(
+            toast.error(
                 error instanceof Error
                     ? error.message
                     : "Something went wrong when adding series"
             );
         } finally {
-            setIsLoading(false);
+            toast.dismiss(loadingToast);
         }
     };
 
@@ -196,22 +210,23 @@ export default function AddSeriesPage() {
                         <div className="flex justify-between border border-gray-700 rounded-md p-[3px] ">
                             <div
                                 className={`flex justify-center flex-1 text-sm py-1 rounded-md cursor-pointer ${
-                                    uploadType === "device" && "bg-blue-500"
+                                    imageSourceType === "upload" &&
+                                    "bg-blue-500"
                                 }`}
-                                onClick={() => setUploadType("device")}
+                                onClick={() => setImageSourceType("upload")}
                             >
                                 Upload File
                             </div>
                             <div
                                 className={`flex justify-center flex-1 text-sm py-1 rounded-md cursor-pointer ${
-                                    uploadType === "link" && "bg-blue-500"
+                                    imageSourceType === "link" && "bg-blue-500"
                                 }`}
-                                onClick={() => setUploadType("link")}
+                                onClick={() => setImageSourceType("link")}
                             >
                                 Image Link
                             </div>
                         </div>
-                        {uploadType === "device" ? (
+                        {imageSourceType === "upload" ? (
                             <>
                                 <div
                                     className="max-w-[96%] border border-dashed border-[#dadada5a] h-44 rounded-md flex items-center justify-center flex-col mx-auto hover:opacity-80 cursor-pointer"
@@ -268,7 +283,7 @@ export default function AddSeriesPage() {
                     className="bg-blue-600 py-2 rounded-md flex items-center justify-center cursor-pointer transition-all hover:opacity-85"
                     type="submit"
                 >
-                    {loading ? "Uploading" : "Add Series"}
+                    Add Series
                 </button>
             </form>
         </div>

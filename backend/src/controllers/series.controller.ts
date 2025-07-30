@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
     AddSeriesBody,
+    ImageBBResponseType,
     StatusEnum,
     UpdateSeriesBody,
 } from "../types/series.type";
@@ -8,6 +9,13 @@ import { StatusCode } from "../types/http.type";
 import { db } from "../db";
 import { seriesTable } from "../db/schema";
 import { eq } from "drizzle-orm";
+
+const IMAGEBB_ENDPOINT = process.env.IMAGEBB_ENDPOINT;
+const IMAGEBB_API_KEY = process.env.IMAGEBB_API_KEY;
+
+if (!IMAGEBB_API_KEY || !IMAGEBB_ENDPOINT) {
+    throw new Error("Please specify endpoint and api_key in .env");
+}
 
 //Request<Params, ResBody, ReqBody, ReqQuery>
 export const addSeries = async (
@@ -30,10 +38,12 @@ export const addSeries = async (
             genres,
             isVisible,
             status,
-            coverImageUrl,
-            deleteImageUrl,
             isFeatured,
+            imageSourceType,
         } = req.body;
+
+        let { coverImageUrl } = req.body;
+        let deleteImageUrl = "";
 
         if (!title) {
             return res.status(StatusCode.BAD_REQUEST).json({
@@ -46,13 +56,6 @@ export const addSeries = async (
             return res.status(StatusCode.BAD_REQUEST).json({
                 success: false,
                 message: "Cover image is required",
-            });
-        }
-
-        if (!deleteImageUrl) {
-            return res.status(StatusCode.BAD_REQUEST).json({
-                success: false,
-                message: "Delete Image url is required",
             });
         }
 
@@ -73,6 +76,26 @@ export const addSeries = async (
                 success: false,
                 message: "Series with this title already exists",
             });
+        }
+
+        if (imageSourceType === "upload") {
+            const sanitizedBase64Url = coverImageUrl.split(",")[1];
+            const params = new URLSearchParams();
+            params.append("image", sanitizedBase64Url);
+
+            const res = await fetch(
+                `${IMAGEBB_ENDPOINT}?key=${IMAGEBB_API_KEY}`,
+                {
+                    method: "POST",
+                    body: params,
+                }
+            );
+
+            const data: ImageBBResponseType = await res.json();
+            if (data.success) {
+                coverImageUrl = data.data.display_url;
+                deleteImageUrl = data.data.delete_url;
+            }
         }
 
         const statusString =
